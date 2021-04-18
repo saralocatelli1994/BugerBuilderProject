@@ -27,12 +27,19 @@ const Burger: FC<Props> = (props: Props) => {
     }
   });
 
-  return (
-    <BurgerStyle>
-      <BurgerIngredient type={"bread-top"} />
+  const renderHamburgerIngredients = (
+    <>
       {tranformedIngredients.map((ingr, i) => {
         return <BurgerIngredient key={i} type={ingr} />;
       })}
+    </>
+  );
+
+  return (
+    <BurgerStyle>
+      <BurgerIngredient type={"bread-top"} />
+      {tranformedIngredients.length > 0 && renderHamburgerIngredients}
+      {tranformedIngredients.length === 0 && <p>Add ingredients</p>}
       <BurgerIngredient type={"bread-bottom"} />
     </BurgerStyle>
   );

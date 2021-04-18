@@ -1,5 +1,7 @@
-import React, { FC, ReactNode } from "react";
+import React, { FC, ReactNode, useState } from "react";
 
+import SideDrawer from "../Navigation/SideDrawer/SideDrawer";
+import Toolbar from "../Navigation/Toolbar/Toolbar";
 import { Content } from "./components";
 
 interface Props {
@@ -7,9 +9,18 @@ interface Props {
 }
 
 const Layout: FC<Props> = (props: Props) => {
+  const [showSideDrawer, setShowSideDrawer] = useState<boolean>(false);
+  const sideDrawerCloseHandler = () => {
+    setShowSideDrawer(false);
+  };
+
+  const sideDrawerOpenHandler = () => {
+    setShowSideDrawer(!showSideDrawer);
+  };
   return (
     <>
-      <div>Toolbar, SideDrawer, BAckdrop</div>
+      <Toolbar drawerToggleClicked={sideDrawerOpenHandler} />
+      <SideDrawer isOpen={showSideDrawer} onClose={sideDrawerCloseHandler} />
       <Content>{props.children}</Content>
     </>
   );
