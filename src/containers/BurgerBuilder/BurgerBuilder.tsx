@@ -1,10 +1,12 @@
 import _ from "lodash";
-import React, { FC, useState } from "react";
+import React, { FC, useEffect, useState } from "react";
+import { WaveLoading } from "styled-spinkit";
 
 import BuildControls from "../../components/Burger/BuildControls/BuildControls";
 import Burger from "../../components/Burger/Burger";
 import OrderSummary from "../../components/Burger/OrderSummary/OrderSummary";
 import Modal from "../../components/UI/Modal/Modal";
+import axios from "../../network";
 import { Ingredient, IngredientChoice } from "../definitions";
 
 const INGREDIENT_PRICES = {
@@ -15,15 +17,25 @@ const INGREDIENT_PRICES = {
 };
 
 const BurgerBuilder: FC = () => {
-  const [ingredients, setIngredients] = useState<IngredientChoice>({
-    bacon: 0,
-    salad: 0,
-    meat: 0,
-    cheese: 0,
-  });
+  const [ingredients, setIngredients] = useState<IngredientChoice>();
   const [totalPrice, setTotalPrice] = useState<number>(4);
   const [purchasable, setPurchasable] = useState<boolean>(false);
   const [purchaseMode, setPurchaseMode] = useState<boolean>(false);
+  const [isLoading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    axios
+      .get<IngredientChoice>(
+        "https://burger-builder-sara-default-rtdb.europe-west1.firebasedatabase.app/ingredients.json"
+      )
+      .then((response) => {
+        setIngredients(response.data);
+      })
+      .catch((error) => {
+        setLoading(false);
+        setPurchaseMode(false);
+      });
+  }, []);
 
   const checkPurchasable = (ingredients: IngredientChoice) => {
     const sum = _.keys(ingredients)
@@ -43,6 +55,7 @@ const BurgerBuilder: FC = () => {
   };
 
   const addIngredientHandler = (type: Ingredient) => {
+    if (!ingredients) return;
     const oldCount = ingredients[type];
     if (oldCount == undefined) return;
     const newCount = oldCount + 1;
@@ -57,6 +70,7 @@ const BurgerBuilder: FC = () => {
   };
 
   const removeIngredientHandler = (type: Ingredient) => {
+    if (!ingredients) return;
     const oldCount = ingredients[type];
     if (oldCount == 0 || oldCount === undefined) return;
     const newCount = oldCount - 1;
@@ -79,28 +93,61 @@ const BurgerBuilder: FC = () => {
   };
 
   const purchaseContinueHandler = () => {
-    alert("continue");
+    setLoading(true);
+    const order = {
+      ingredients: ingredients,
+      price: totalPrice,
+      customer: {
+        name: "Sara Locatelli",
+        address: {
+          street: "rainbow",
+          country: "Italy",
+        },
+        email: "test@gmail.com",
+      },
+    };
+    axios
+      .post("/orders.json", order)
+      .then((response) => {
+        setLoading(false);
+        setPurchaseMode(false);
+      })
+      .catch((error) => {
+        setLoading(false);
+        setPurchaseMode(false);
+      });
   };
 
+  let burger = <WaveLoading />;
+  if (ingredients) {
+    burger = (
+      <>
+        <Burger ingredients={ingredients} />
+        <BuildControls
+          ingredientAdded={addIngredientHandler}
+          ingredientRemoved={removeIngredientHandler}
+          ingredients={ingredients}
+          price={totalPrice}
+          purchasable={purchasable}
+          onPurchase={purchaseHandler}
+        />
+      </>
+    );
+  }
   return (
     <>
       <Modal show={purchaseMode} modalClosed={() => setPurchaseMode(false)}>
-        <OrderSummary
-          ingredients={ingredients}
-          purchaseCanceled={purchaseCancelHandler}
-          purchaseContinued={purchaseContinueHandler}
-          price={totalPrice}
-        />
+        {!isLoading && ingredients && (
+          <OrderSummary
+            ingredients={ingredients}
+            purchaseCanceled={purchaseCancelHandler}
+            purchaseContinued={purchaseContinueHandler}
+            price={totalPrice}
+          />
+        )}
+        {isLoading && <WaveLoading />}
       </Modal>
-      <Burger ingredients={ingredients} />
-      <BuildControls
-        ingredientAdded={addIngredientHandler}
-        ingredientRemoved={removeIngredientHandler}
-        ingredients={ingredients}
-        price={totalPrice}
-        purchasable={purchasable}
-        onPurchase={purchaseHandler}
-      />
+      {burger}
     </>
   );
 };
